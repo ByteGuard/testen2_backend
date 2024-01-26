@@ -57,15 +57,22 @@ public class AccountService {
         // Get account to update
         final Account accountToUpdate = getAccount(accountId).orElseThrow(RuntimeException::new);
 
-        // If credited, the amount is subtracted from account.
-        final BigDecimal amountToUpdate = direction.equals(Direction.CREDIT) ? amount.negate() : amount;
+        // Adjust the amount based on the direction
+        final BigDecimal amountToUpdate = (direction.equals(Direction.DEBIT)) ? amount.negate() : amount;
 
         // Set new balance
         final BigDecimal currentBalance = accountToUpdate.getBalance();
         final BigDecimal newBalance = currentBalance.add(amountToUpdate);
+
+        // Ensure the balance doesn't go below zero for debit operations
+        if (direction.equals(Direction.DEBIT) && newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Debit amount exceeds the available balance");
+        }
+
         accountToUpdate.setBalance(newBalance);
 
         // Save in DB.
         accountRepository.save(accountToUpdate);
     }
+
 }
